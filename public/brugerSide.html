@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <title>Bruger – Venteliste</title>
+  <link rel="stylesheet" href="/brugerSide.css">
+</head>
+<body>
+  <div class="page">
+    <h1>Venteliste til oplevelse</h1>
+
+    <form id="venteliste-form">
+      <div class="field">
+        <label for="oplevelse-valg">Vælg oplevelse:</label>
+        <select id="oplevelse-valg">
+          <option value="">Henter oplevelser...</option>
+        </select>
+      </div>
+
+      <input type="hidden" name="experienceId" id="experience-id-hidden" value="">
+
+      <div class="field">
+        <label for="name-input">Navn:</label>
+        <input id="name-input" type="text" name="name" required>
+      </div>
+
+      <div class="field">
+        <label for="phone-input">Telefon:</label>
+        <input id="phone-input" type="text" name="phone">
+      </div>
+
+      <div class="field">
+        <label for="email-input">Email:</label>
+        <input id="email-input" type="email" name="email">
+      </div>
+
+      <button type="submit">Skriv mig på venteliste</button>
+    </form>
+
+    <h2>Resultat</h2>
+    <div id="result"></div>
+  </div>
+
+  <script src="/brugerSide.js"></script>
+</body>
+</html>

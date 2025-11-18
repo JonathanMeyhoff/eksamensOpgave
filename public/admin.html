@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <title>Admin – Venteliste</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <div class="page">
+    <h1>Admin – Venteliste</h1>
+    <p>Her kan du oprette oplevelser, se ventelisten og sende SMS til alle i køen.</p>
+
+    <h2>Opret ny oplevelse</h2>
+    <div>
+      <label for="ny-oplevelse-titel">Titel:</label>
+      <input id="ny-oplevelse-titel" type="text">
+      <button id="btn-opret-oplevelse">Opret</button>
+    </div>
+
+    <h2>Vælg oplevelse</h2>
+    <div>
+      <label for="oplevelse-valg">Vælg oplevelse:</label>
+      <select id="oplevelse-valg">
+        <option value="">Henter oplevelser...</option>
+      </select>
+    </div>
+
+    <h2>Rediger valgt oplevelse</h2>
+    <div>
+      <label for="exp-title">Titel:</label>
+      <input id="exp-title" type="text">
+      <button id="btn-save-exp">Gem titel</button>
+    </div>
+
+    <h2>Venteliste-handlinger</h2>
+    <div>
+      <button id="btn-show">Vis venteliste</button>
+      <button id="btn-notify">Send SMS til alle i køen</button>
+    </div>
+
+    <h2>Resultat</h2>
+    <div id="result-table"></div>
+    <pre id="output">Ingen data endnu.</pre>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
