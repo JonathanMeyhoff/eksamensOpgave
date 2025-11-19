@@ -184,3 +184,34 @@ button:active {
 #output {
   display: none;
 }
+.status-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* waiting = grå */
+.status-waiting {
+  background: #eeeeee;
+  color: #555555;
+}
+
+/* invited = blå */
+.status-invited {
+  background: #d0e7ff;
+  color: #0b3c7d;
+}
+
+/* confirmed = grøn */
+.status-confirmed {
+  background: #c8f7c5;
+  color: #2e7d32;
+}
+
+/* declined = rød */
+.status-declined {
+  background: #ffd1d1;
+  color: #c62828;
+}

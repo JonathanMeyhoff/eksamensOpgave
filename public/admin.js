@@ -14,6 +14,21 @@ const output = document.getElementById('output');
 
 let experiencesCache = [];
 
+function getStatusClass(status) {
+  switch (status) {
+    case 'waiting':
+      return 'status-badge status-waiting';
+    case 'invited':
+      return 'status-badge status-invited';
+    case 'confirmed':
+      return 'status-badge status-confirmed';
+    case 'declined':
+      return 'status-badge status-declined';
+    default:
+      return 'status-badge';
+  }
+}
+
 function setOutput(messageOrObject) {
   if (typeof messageOrObject === 'string') {
     output.textContent = messageOrObject;
@@ -182,9 +197,9 @@ btnSaveExp.addEventListener('click', async () => {
   }
 });
 
-// --------- VIS VENTELISTE ----------
+// --------- VIS / OPDATER VENTELISTE ----------
 
-btnShow.addEventListener('click', async () => {
+async function loadVentelisteForSelectedExperience() {
   const experienceId = getSelectedExperienceId();
   if (!experienceId) {
     return;
@@ -216,7 +231,16 @@ btnShow.addEventListener('click', async () => {
     console.error(err);
     setOutput('Fejl ved fetch af venteliste: ' + err.message);
   }
-});
+}
+
+// “Vis venteliste”-knap bruger funktionen
+btnShow.addEventListener('click', loadVentelisteForSelectedExperience);
+
+// “Opdater venteliste”-knap bruger samme funktion
+const refreshBtn = document.getElementById('refresh-waitlist-btn');
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', loadVentelisteForSelectedExperience);
+}
 
 // --------- SEND SMS ----------
 
