@@ -1,110 +1,87 @@
 // routes/twilioWebHook.js
 const express = require('express');
-const db = require('../db');
-const twilio = require('twilio');
-
 const router = express.Router();
-const MessagingResponse = twilio.twiml.MessagingResponse;
+const db = require('../db');
+const { MessagingResponse } = require('twilio').twiml;
 
-/**
- * Normaliserer telefonnummer så det matcher det vi gemmer i DB
- * (samme logik som i venteliste.js)
- */
+// samme normalizePhone som i venteliste.js
 function normalizePhone(phone) {
   if (!phone) return null;
-
-  // Fjern mellemrum
   let p = phone.replace(/\s+/g, '');
-
-  // Hvis det allerede er +45xxxxxxx
-  if (p.startsWith('+')) {
-    return p;
-  }
-
-  // Hvis det starter med 0045xxxxxx
-  if (p.startsWith('0045')) {
-    return '+45' + p.slice(4);
-  }
-
-  // Hvis det er 8 cifre (dansk nummer uden landekode)
-  if (/^\d{8}$/.test(p)) {
-    return '+45' + p;
-  }
-
-  // Hvis det er 10 cifre og starter med 45...
-  if (/^45\d{8}$/.test(p)) {
-    return '+' + p;
-  }
-
-  // Ellers returnér som det er
+  if (p.startsWith('+')) return p;
+  if (p.startsWith('0045')) return '+45' + p.slice(4);
+  if (/^\d{8}$/.test(p)) return '+45' + p;
   return p;
 }
 
-// Twilio webhook – når en bruger svarer på SMS
-router.post('/webhook', express.urlencoded({ extended: false }), (req, res) => {
-  const rawFrom = req.body.From || '';
-  const from = normalizePhone(rawFrom);
-  const body = (req.body.Body || '').trim().toUpperCase();
+// Twilio sender webhook her: POST /api/twilio/sms
+router.post('/sms', (req, res) => {
+  const fromRaw = req.body.From;   // fx "+4522334455"
+  const bodyRaw = req.body.Body;   // fx "JA" eller "NEJ"
 
-  console.log('Twilio webhook kaldt:', {
-    rawFrom,
-    normalizedFrom: from,
-    body
-  });
+  console.log('Indgående SMS:', fromRaw, bodyRaw);
 
-  // Hvis vi ikke har et gyldigt afsendernummer → svar tomt
-  if (!from) {
-    const twiml = new MessagingResponse();
-    res.type('text/xml').send(twiml.toString());
-    return;
+  const fromPhone = normalizePhone(fromRaw);
+  const text = (bodyRaw || '').trim().toLowerCase();
+
+  let newStatus = null;
+  if (text === 'ja') newStatus = 'confirmed';
+  if (text === 'nej') newStatus = 'declined';
+
+  const twiml = new MessagingResponse();
+
+  if (!newStatus) {
+    twiml.message('Svar JA for at bekræfte eller NEJ for at afvise.');
+    res.type('text/xml');
+    return res.send(twiml.toString());
   }
 
-  let newStatus;
-  let replyText;
-
-  if (body === 'JA') {
-    newStatus = 'confirmed';
-    replyText =
-      'Tak for din bekræftelse – du har nu en plads til oplevelsen. Vi glæder os til at se dig!';
-  } else if (body === 'NEJ') {
-    newStatus = 'declined';
-    replyText =
-      'Tak for dit svar – vi giver pladsen videre til næste på ventelisten.';
-  } else {
-    // Ukendt svar → ingen DB-opdatering, men send en hjælpetekst
-    const twiml = new MessagingResponse();
-    twiml.message('Jeg forstod ikke dit svar. Svar venligst JA eller NEJ på denne besked.');
-    res.type('text/xml').send(twiml.toString());
-    return;
-  }
-
-  // Opdater rækken(e) for dette telefonnummer
-  db.run(
+  db.get(
     `
-    UPDATE waitlist
-    SET status = ?
+    SELECT id, experience_id, status
+    FROM waitlist
     WHERE phone = ?
+      AND status IN ('waiting','invited')
+    ORDER BY created_at DESC
+    LIMIT 1
     `,
-    [newStatus, from],
-    function (err) {
+    [fromPhone],
+    (err, row) => {
       if (err) {
-        console.error('Fejl ved UPDATE i webhook:', err);
-        // Ved fejl svarer vi stadig med en høflig besked
-        const twiml = new MessagingResponse();
-        twiml.message('Der opstod en fejl ved registrering af dit svar. Prøv igen senere.');
-        res.type('text/xml').send(twiml.toString());
-        return;
+        console.error('DB fejl:', err);
+        twiml.message('Der opstod en fejl. Prøv igen senere.');
+        res.type('text/xml');
+        return res.send(twiml.toString());
       }
 
-      console.log('Webhook UPDATE result:', {
-        from,
-        newStatus,
-        changedRows: this.changes
-      });
+      if (!row) {
+        twiml.message('Vi kunne ikke finde din venteliste-tilmelding.');
+        res.type('text/xml');
+        return res.send(twiml.toString());
+      }
 
-      const twiml = new MessagingResponse();
-      twiml.message(replyText);
-      res.type('text/xml').send(twiml.toString());
+      // Opdater status
+      db.run(
+        `UPDATE waitlist SET status = ? WHERE id = ?`,
+        [newStatus, row.id],
+        (updateErr) => {
+          if (updateErr) {
+            console.error('Opdateringsfejl:', updateErr);
+            twiml.message('Fejl ved opdatering.');
+            res.type('text/xml');
+            return res.send(twiml.toString());
+          }
+
+          if (newStatus === 'confirmed') {
+            twiml.message('Tak! Du har nu bekræftet din plads.');
+          } else {
+            twiml.message('Du har nu afvist pladsen.');
+          }
+
+          res.type('text/xml');
+          res.send(twiml.toString());
+        }
+      );
     }
   );
 });

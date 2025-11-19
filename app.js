@@ -1,10 +1,11 @@
 require('dotenv').config();
 var express = require('express');
-var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const path = require('path');
 const basicAuth = require('basic-auth');
+const path = require('path');
+var mailRouter = require('./routes/mail');
+
 
 var ventelisteRouter = require('./routes/venteliste');
 var twilioRouter = require('./routes/twilioRoute');
@@ -19,6 +20,8 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use('/api', mailRouter);
+
 
 // statiske filer
 app.use(express.static(path.join(__dirname, 'public')));
@@ -46,7 +49,7 @@ function adminAuth(req, res, next) {
 }
 
 app.get('/admin', adminAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'backend', 'public', 'admin.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
   });
   
 
