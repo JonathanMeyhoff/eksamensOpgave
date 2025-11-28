@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { MessagingResponse } = require('twilio').twiml;
+const { decrypt } = require('../utils/cryptoHelper');
+
 
 // samme normalizePhone som i venteliste.js
 function normalizePhone(phone) {
@@ -16,8 +18,8 @@ function normalizePhone(phone) {
 
 // Twilio sender webhook her: POST /api/twilio/sms
 router.post('/sms', (req, res) => {
-  const fromRaw = req.body.From;   // fx "+4522334455"
-  const bodyRaw = req.body.Body;   // fx "JA" eller "NEJ"
+  const fromRaw = req.body.From;
+  const bodyRaw = req.body.Body;
 
   console.log('Indgående SMS:', fromRaw, bodyRaw);
 
@@ -36,17 +38,16 @@ router.post('/sms', (req, res) => {
     return res.send(twiml.toString());
   }
 
-  db.get(
+  // 🔐 NYT: hent alle relevante rows og match i Node
+  db.all(
     `
-    SELECT id, experience_id, status
+    SELECT id, experience_id, status, phone
     FROM waitlist
-    WHERE phone = ?
-      AND status IN ('waiting','invited')
+    WHERE status IN ('waiting','invited')
     ORDER BY created_at DESC
-    LIMIT 1
     `,
-    [fromPhone],
-    (err, row) => {
+    [],
+    (err, rows) => {
       if (err) {
         console.error('DB fejl:', err);
         twiml.message('Der opstod en fejl. Prøv igen senere.');
@@ -54,7 +55,20 @@ router.post('/sms', (req, res) => {
         return res.send(twiml.toString());
       }
 
-      if (!row) {
+      let matchedRow = null;
+
+      for (const row of rows) {
+        const phonePlain = row.phone ? decrypt(row.phone) : null;
+        if (!phonePlain) continue;
+
+        const norm = normalizePhone(phonePlain);
+        if (norm === fromPhone) {
+          matchedRow = row;
+          break;
+        }
+      }
+
+      if (!matchedRow) {
         twiml.message('Vi kunne ikke finde din venteliste-tilmelding.');
         res.type('text/xml');
         return res.send(twiml.toString());
@@ -63,7 +77,7 @@ router.post('/sms', (req, res) => {
       // Opdater status
       db.run(
         `UPDATE waitlist SET status = ? WHERE id = ?`,
-        [newStatus, row.id],
+        [newStatus, matchedRow.id],
         (updateErr) => {
           if (updateErr) {
             console.error('Opdateringsfejl:', updateErr);
@@ -85,5 +99,6 @@ router.post('/sms', (req, res) => {
     }
   );
 });
+
 
 module.exports = router;
