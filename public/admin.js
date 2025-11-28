@@ -11,8 +11,25 @@ const btnSaveExp = document.getElementById('btn-save-exp');
 const btnShow = document.getElementById('btn-show');
 const btnNotify = document.getElementById('btn-notify');
 const output = document.getElementById('output');
+const refreshBtn = document.getElementById('refresh-waitlist-btn');
 
 let experiencesCache = [];
+
+// (bruges ikke lige nu, men kan bruges hvis vi vil lave badges på en anden måde)
+function getStatusClass(status) {
+  switch (status) {
+    case 'waiting':
+      return 'status-badge status-waiting';
+    case 'invited':
+      return 'status-badge status-invited';
+    case 'confirmed':
+      return 'status-badge status-confirmed';
+    case 'declined':
+      return 'status-badge status-declined';
+    default:
+      return 'status-badge';
+  }
+}
 
 function setOutput(messageOrObject) {
   if (typeof messageOrObject === 'string') {
@@ -182,9 +199,9 @@ btnSaveExp.addEventListener('click', async () => {
   }
 });
 
-// --------- VIS VENTELISTE ----------
+// --------- VIS / OPDATER VENTELISTE ----------
 
-btnShow.addEventListener('click', async () => {
+async function loadVentelisteForSelectedExperience() {
   const experienceId = getSelectedExperienceId();
   if (!experienceId) {
     return;
@@ -216,7 +233,15 @@ btnShow.addEventListener('click', async () => {
     console.error(err);
     setOutput('Fejl ved fetch af venteliste: ' + err.message);
   }
-});
+}
+
+// “Vis venteliste”-knap
+btnShow.addEventListener('click', loadVentelisteForSelectedExperience);
+
+// “Opdater venteliste”-knap
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', loadVentelisteForSelectedExperience);
+}
 
 // --------- SEND SMS ----------
 
@@ -271,3 +296,4 @@ btnNotify.addEventListener('click', async () => {
 // --------- INIT ----------
 
 hentOplevelser();
+

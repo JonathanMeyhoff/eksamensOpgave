@@ -5,17 +5,8 @@
  */
 
 var app = require('../app');
-var debug = require('debug')('2-express-https:server');
-const https = require('https')
-const fs = require('fs')
-const path = require('path');
-
-
-const options = {
-  key: fs.readFileSync(path.join(__dirname, '../ssl/privkey.pem')),
-  cert: fs.readFileSync(path.join(__dirname, '../ssl/newcert.pem'))
-};
-
+var debug = require('debug')('eksamensOpgave:server');
+var http = require('http');
 
 /**
  * Get port from environment and store in Express.
@@ -25,12 +16,10 @@ var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
- * Create HTTP server.
+ * Create HTTP server (HTTP, ikke HTTPS).
  */
 
-var server = https.createServer(app);
-
-server = https.createServer(options, app);
+var server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -99,3 +88,4 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+

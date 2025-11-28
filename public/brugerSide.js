@@ -49,6 +49,7 @@ form.addEventListener('submit', async (e) => {
     data.experienceId = Number(data.experienceId);
 
     console.log('Sender data til /api/venteliste:', data);
+    result.textContent = 'Sender din tilmelding...';
 
     try {
         const res = await fetch('/api/venteliste', {
@@ -59,30 +60,46 @@ form.addEventListener('submit', async (e) => {
 
         const text = await res.text();
 
-        try {
-            const json = JSON.parse(text);
-            const valgtOption = oplevelseSelect.options[oplevelseSelect.selectedIndex];
-            const oplevelseTekst = valgtOption ? valgtOption.text : 'valgt oplevelse';
+        if (!res.ok) {
+            let errorMessage = text;
+            try {
+                const errJson = JSON.parse(text);
+                if (errJson.error) {
+                    errorMessage = `${errJson.error}${errJson.message ? ': ' + errJson.message : ''}`;
+                } else if (errJson.errors && errJson.errors.length) {
+                    errorMessage = errJson.errors.map(e => e.msg || JSON.stringify(e)).join(', ');
+                }
+            } catch {
+                // plain text eller tom body – behold originalen
+            }
+            result.textContent = 'Fejl: ' + (errorMessage || 'Ukendt serverfejl');
+            return;
+        }
 
-            // Flot, venlig bekræftelsesboks
-            result.innerHTML = `
-        <div class="confirm-box">
-             <strong>Du er nu tilmeldt!</strong><br><br>
-               Du er skrevet på ventelisten til:<br>
-             <span style="font-weight:600">• ${oplevelseTekst}</span>
-        </div>`;
+        const valgtOption = oplevelseSelect.options[oplevelseSelect.selectedIndex];
+        const oplevelseTekst = valgtOption ? valgtOption.text : 'valgt oplevelse';
 
-            // Ryd felterne efter success
-            document.getElementById('name-input').value = '';
-            document.getElementById('phone-input').value = '';
-            document.getElementById('email-input').value = '';
+        result.innerHTML = `
+      <div class="confirm-box">
+           <strong>Du er nu tilmeldt!</strong><br><br>
+             Du er skrevet på ventelisten til:<br>
+           <span style="font-weight:600">• ${oplevelseTekst}</span>
+      </div>`;
 
-            // Scroll så brugeren ser beskeden
-            result.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('name-input').value = '';
+        document.getElementById('phone-input').value = '';
+        document.getElementById('email-input').value = '';
+        result.scrollIntoView({ behavior: 'smooth' });
 
-        } catch (errParse) {
-            console.error('Parse-fejl i svar:', errParse);
-            result.textContent = 'Kunne ikke parse svar som JSON:\n' + text;
+        if (text) {
+            try {
+                const json = JSON.parse(text);
+                console.log('Server-svar:', json);
+            } catch (errParse) {
+                console.warn('Kunne ikke parse JSON-svar:', errParse);
+            }
+        } else {
+            console.warn('Serveren returnerede en tom body trods successtatus.');
         }
     } catch (err) {
         console.error('Fejl ved fetch:', err);

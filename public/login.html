@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <title>Login – Admin</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <div class="page">
+    <h1>Login til admin</h1>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required>
+      </div>
+
+      <button type="submit">Log ind</button>
+    </form>
+
+    <p id="login-error" style="color:red;"></p>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorEl = document.getElementById('login-error');
+      errorEl.textContent = '';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!res.ok) {
+          errorEl.textContent = 'Login fejlede – tjek email og password.';
+          return;
+        }
+
+        // Hvis login er OK, bliver JWT-cookie sat af serveren
+        // og vi sender brugeren videre til /admin
+        window.location.href = '/admin';
+      } catch (err) {
+        errorEl.textContent = 'Teknisk fejl ved login: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

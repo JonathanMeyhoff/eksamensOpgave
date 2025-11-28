@@ -6,6 +6,8 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "basic-auth": "^2.0.1",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "dotenv": "^17.2.3",
@@ -13,6 +15,7 @@
     "express-validator": "^7.3.0",
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "~1.9.1",
     "nodemailer": "^7.0.10",
     "sqlite3": "^5.1.7",

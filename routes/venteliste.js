@@ -38,8 +38,8 @@ router.post(
   '/venteliste',
   body('experienceId').isInt({ gt: 0 }),
   body('name').isLength({ min: 1 }),
-  body('phone').optional().isString(),
-  body('email').optional().isEmail(),
+  body('phone').optional({ checkFalsy: true }).isString(),
+  body('email').optional({ checkFalsy: true }).isEmail(),
   (req, res) => {
     console.log('POST /api/venteliste body:', req.body);
 
@@ -61,19 +61,43 @@ router.post(
       });
     }
 
-    db.run(
-      `INSERT INTO waitlist (experience_id, name, phone, email, status)
-       VALUES (?, ?, ?, ?, 'waiting')`,
-       [experienceId, name, normalizedPhone || null, email || null],
-       function (err) {
-        if (err) {
-          console.error('DB insert error:', err);
-          return res.status(500).json({ error: 'db_error' });
-        }
-        console.log('Inserted row id:', this.lastID);
-        res.status(201).json({ id: this.lastID });
-      }
-    );
+db.run(
+  `INSERT INTO waitlist (experience_id, name, phone, email, status)
+   VALUES (?, ?, ?, ?, 'waiting')`,
+  [experienceId, name, normalizedPhone || null, email || null],
+  async function (err) {
+    if (err) {
+      console.error('DB insert error:', err);
+      return res.status(500).json({ error: 'db_error' });
+    }
+
+    console.log('Inserted row id:', this.lastID);
+
+    const createdId = this.lastID;
+    res.status(201).json({ id: createdId });
+
+    if (email) {
+      const subject = `Du er på ventelisten til oplevelse ${experienceId}`;
+      const text = `Hej ${name},
+
+Du er nu på ventelisten til oplevelsen med ID ${experienceId}.
+Vi kontakter dig, når der bliver en ledig plads.
+
+Venlig hilsen
+Understory Opgave`;
+
+      sendEmail(email, subject, text)
+        .then((result) => {
+          console.log('EMAIL sendt til', email, 'messageId:', result.messageId);
+        })
+        .catch((mailErr) => {
+          console.error('Fejl ved EMAIL til', email, ':', mailErr.message);
+        });
+    }
+  }
+);
+
+
   }
 );
 
